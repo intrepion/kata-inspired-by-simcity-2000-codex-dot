@@ -1,0 +1,26 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "game": "Terrace-and-Tide",
+    "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+  },
+  {
+    "path": "/favicon.svg",
+    "status": 200,
+    "bytes": 256,
+    "type": "image/svg+xml"
+  },
+  {
+    "path": "/assets/index-PMPGNBmQ.js",
+    "status": 200,
+    "bytes": 37897,
+    "type": "text/javascript; charset=utf-8"
+  },
+  {
+    "path": "/assets/index-DEwAPX0C.css",
+    "status": 200,
+    "bytes": 15543,
+    "type": "text/css; charset=utf-8"
+  }
+]
