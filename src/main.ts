@@ -484,13 +484,25 @@ $('#load').onclick = () => {
   }
 };
 $('#export').onclick = () => {
-  const url = URL.createObjectURL(new Blob([serialize(city)], { type: 'application/json' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `terrace-tide-month-${city.month}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  notify('City file downloaded. Import it here to continue later.');
+  const raw = serialize(city);
+  modal(
+    'Keep your city safe.',
+    '<p>Download a JSON file, or select and copy the complete save below. Import accepts either a file or pasted JSON. These are local files; nothing is uploaded.</p><label class="save-json-label" for="export-json">City save JSON</label><textarea id="export-json" rows="5" readonly></textarea>',
+    'Download JSON',
+    () => {
+      const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `terrace-tide-month-${city.month}.json`;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify('Save download requested. You can also copy JSON from Download save.');
+    },
+    'Close',
+  );
+  $<HTMLTextAreaElement>('#export-json').value = raw;
 };
 $('#import').onclick = () => {
   modal(

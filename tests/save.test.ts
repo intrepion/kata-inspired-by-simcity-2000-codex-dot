@@ -103,3 +103,13 @@ it('rejects impossible progression but allows a won city to be demolished later'
   tick(d);
   expect(deserialize(serialize(d)).won).toBe(true);
 });
+
+it('loads the independent browser-played exported city without changing its finances', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raw = await readFile(new URL('../qa/browser-played-city.json', import.meta.url), 'utf8');
+  const city = deserialize(raw);
+  expect(city.month).toBe(503);
+  expect(city.cash).toBe(313582);
+  expect(city.won).toBe(true);
+  expect(city.speed).toBe(0);
+});

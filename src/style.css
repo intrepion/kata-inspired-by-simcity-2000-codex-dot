@@ -1239,7 +1239,8 @@ summary {
   font-size: 12px;
   font-weight: 600;
 }
-#save-json {
+#save-json,
+#export-json {
   width: 100%;
   resize: vertical;
   min-height: 100px;
@@ -1251,7 +1252,8 @@ summary {
   font-family: ui-monospace, monospace;
   font-size: 11px;
 }
-#save-json:focus-visible {
+#save-json:focus-visible,
+#export-json:focus-visible {
   outline: 3px solid #c87e36;
   outline-offset: 2px;
 }
