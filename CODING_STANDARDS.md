@@ -1,0 +1,2 @@
+# Standards
+Keep deterministic simulation separate from presentation. Pure serializable domain state. No hidden browser cheats or global mutation API. Validate every imported save, never trust localStorage. Monetary and occupancy invariants hold at public boundaries. UI dialogs pause time and destructive actions require explicit confirmation. Labels explain capacity and coverage in plain language. Avoid dependencies for simple math or art. No commercial assets.
