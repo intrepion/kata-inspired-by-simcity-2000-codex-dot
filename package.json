@@ -10,10 +10,13 @@
     "test": "vitest run",
     "preview": "vite preview --host 127.0.0.1 --port 5210 --strictPort",
     "start": "node scripts/serve.mjs",
-    "serve:detached": "node scripts/start-server.mjs"
+    "serve:detached": "node scripts/start-server.mjs",
+    "format": "prettier --write src tests scripts",
+    "format:check": "prettier --check src tests scripts"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"
