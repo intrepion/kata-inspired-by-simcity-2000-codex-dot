@@ -160,7 +160,7 @@ export function drawMap(
               ? 'River'
               : 'Rocky ridge'
           : CATALOG[t.kind].name;
-      out += `<g class="tile${i === selected ? ' selected' : ''}" data-tile="${i}" role="button" tabindex="${i === selected ? 0 : -1}" aria-label="Tile ${x + 1},${y + 1}: ${name}${t.amount ? `, ${t.amount} ${t.kind === 'residential' ? 'residents' : 'jobs'}` : ''}" transform="translate(${sx} ${sy})"><title>Column ${x + 1}, row ${y + 1} · ${name}${d ? ' · ' + d.reason : ''}</title>`;
+      out += `<g class="tile${i === selected ? ' selected' : ''}" data-tile="${i}" role="button" tabindex="${i === selected ? 0 : -1}" aria-label="Tile ${x + 1},${y + 1}: ${name}${t.wire ? ', power line' : ''}${t.pipe ? ', underground pipe' : ''}${t.amount ? `, ${t.amount} ${t.kind === 'residential' ? 'residents' : 'jobs'}` : ''}" transform="translate(${sx} ${sy})"><title>Column ${x + 1}, row ${y + 1} · ${name}${d ? ' · ' + d.reason : ''}</title>`;
       out +=
         poly('-27,0 0,13.5 0,20 -27,6.5', t.terrain === 'river' ? '#346a7f' : '#728c73') +
         poly('0,13.5 27,0 27,6.5 0,20', t.terrain === 'river' ? '#3c7589' : '#82967b');
@@ -183,11 +183,27 @@ export function drawMap(
               dy = nx - x + (ny - y);
             out += `<path d="M0 0L${dx * 27} ${dy * 13.5}" stroke="#637d7b" stroke-width="12"/><path d="M0 0L${dx * 27} ${dy * 13.5}" stroke="#d0d1b5" stroke-width="1" stroke-dasharray="4 5"/>`;
           }
-      } else if (t.kind !== 'empty') out += building(t.kind, t.amount, i);
-      else if ((x * 7 + y * 3) % 19 === 0)
+      } else if (t.kind !== 'empty' && overlay !== 'water')
+        out += `<g opacity="${overlay === 'power' ? '.3' : '1'}">${building(t.kind, t.amount, i)}</g>`;
+      else if (overlay !== 'water' && (x * 7 + y * 3) % 19 === 0)
         out +=
           '<path d="M1 2v-9" stroke="#738862" stroke-width="2"/>' +
           poly('1,-16 8,-4 -6,-4', '#76986b');
+      const utility =
+        overlay === 'water' ? 'pipe' : overlay === 'power' || overlay === 'city' ? 'wire' : null;
+      if (utility && t[utility]) {
+        const membership = utility === 'wire' ? r.powerNetwork : r.waterNetwork,
+          groups = utility === 'wire' ? r.powerNetworks : r.waterNetworks;
+        const live = (groups[membership[i]]?.capacity ?? 0) > 0,
+          color = live ? (utility === 'wire' ? '#f8df86' : '#47bcef') : '#b04e46';
+        out += `<g pointer-events="none" stroke="${color}" stroke-width="${utility === 'pipe' ? 4 : 2.5}" fill="${color}">`;
+        for (const n of neighbors(i))
+          if (city.tiles[n][utility]) {
+            const [nx, ny] = coords(n);
+            out += `<path d="M0 0L${(nx - x - (ny - y)) * 27} ${(nx - x + (ny - y)) * 13.5}"/>`;
+          }
+        out += `<circle cx="0" cy="0" r="3"/></g>`;
+      }
       if (label)
         out += `<g transform="translate(0 2)" pointer-events="none"><rect x="-11" y="-7" width="22" height="12" rx="4" fill="#18383c" opacity=".85"/><text text-anchor="middle" y="2" fill="#fff7df" font-size="9" font-weight="700">${label}</text></g>`;
       if (i === selected)

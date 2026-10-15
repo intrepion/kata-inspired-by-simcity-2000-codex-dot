@@ -18,7 +18,7 @@ export function deserialize(text: string): City {
   }
   if (
     !record(c) ||
-    c.version !== 1 ||
+    ![1, 2].includes(c.version as number) ||
     !Array.isArray(c.tiles) ||
     c.tiles.length !== SIZE * SIZE ||
     !integer(c.cash, -1000000, 1000000000) ||
@@ -65,7 +65,18 @@ export function deserialize(text: string): City {
       (isZone(kind) && t.amount > CATALOG[kind].max)
     )
       throw invalid();
-    return { terrain: t.terrain as City['tiles'][number]['terrain'], kind, amount: t.amount };
+    const legacy = c.version === 1;
+    if (!legacy && (typeof t.wire !== 'boolean' || typeof t.pipe !== 'boolean')) throw invalid();
+    const wire = legacy ? kind === 'road' : (t.wire as boolean),
+      pipe = legacy ? kind === 'road' : (t.pipe as boolean);
+    if (t.terrain !== 'land' && (wire || pipe)) throw invalid();
+    return {
+      terrain: t.terrain as City['tiles'][number]['terrain'],
+      kind,
+      amount: t.amount,
+      wire,
+      pipe,
+    };
   });
   // A pump away from the river cannot be produced through ordinary controls.
   tiles.forEach((t, i) => {
@@ -93,7 +104,7 @@ export function deserialize(text: string): City {
     return { pop: h.pop, cash: h.cash, net: h.net };
   });
   return {
-    version: 1,
+    version: 2,
     tiles,
     cash: c.cash,
     month: c.month,

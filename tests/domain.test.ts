@@ -10,9 +10,11 @@ import {
   rescue,
   setTax,
   tick,
+  layUtility,
+  removeUtility,
 } from '../src/simulation';
 import { serialize, deserialize } from '../src/save';
-import { build, charterCity, settle } from './fixtures';
+import { build, charterCity, settle, connectUtilities } from './fixtures';
 describe('safe construction', () => {
   it('rejects river, rock, remote pump and invalid coordinates without charging', () => {
     const c = createCity();
@@ -68,6 +70,7 @@ describe('network supply and reserved capacity', () => {
     build(c, 3, 4, 'power');
     for (let x = 4; x <= 12; x++) build(c, x, 4, 'residential');
     for (let x = 2; x <= 8; x++) build(c, x, 6, 'residential');
+    connectUtilities(c);
     let r = analyze(c);
     expect(Object.values(r.districts).filter((d) => d.served)).toHaveLength(15);
     expect(r.reserved).toBe(640);
@@ -85,19 +88,20 @@ describe('network supply and reserved capacity', () => {
     build(c, 3, 5, 'power');
     build(c, 2, 5, 'road');
     build(c, 4, 5, 'road');
+    connectUtilities(c);
     const r = analyze(c);
     expect(r.networks).toHaveLength(2);
-    expect(r.networks.filter((n) => n.power > 0)).toHaveLength(1);
+    expect(r.powerNetworks.filter((n) => n.capacity > 0)).toHaveLength(1);
     expect(r.power).toBe(600);
   });
-  it('cuts supply and growth then recovers when the road is rebuilt', () => {
+  it('cuts power and growth then recovers when the wire is rebuilt', () => {
     const c = charterCity();
     settle(c, 6, tick);
-    demolish(c, 4, 5);
+    removeUtility(c, 4, 5, 'wire');
     expect(analyze(c).utilities).toBe(0);
     tick(c);
     expect(analyze(c).population).toBe(180);
-    build(c, 4, 5, 'road');
+    layUtility(c, 4, 5, 'wire');
     tick(c);
     expect(analyze(c).population).toBe(240);
     expect(analyze(c).utilities).toBe(100);
@@ -117,6 +121,7 @@ describe('growth, work and local conditions', () => {
     build(c, 2, 4, 'water');
     build(c, 3, 4, 'power');
     build(c, 4, 4, 'residential');
+    connectUtilities(c);
     settle(c, 10, tick);
     const r = analyze(c);
     expect(r.population).toBe(40);
@@ -194,9 +199,9 @@ describe('growth, work and local conditions', () => {
 describe('charter and treasury', () => {
   it('has an ordinary-controls construction path to victory, then sandbox continues', () => {
     const c = charterCity();
-    expect(c.cash).toBe(9050);
+    expect(c.cash).toBe(8650);
     tick(c);
-    expect(c.cash).toBe(9458);
+    expect(c.cash).toBe(9058);
     expect(c.milestones).toEqual([true, false, false]);
     tick(c);
     tick(c);
@@ -209,12 +214,12 @@ describe('charter and treasury', () => {
     expect(c.won).toBe(false);
     tick(c);
     expect(c.won).toBe(true);
-    expect(c.cash).toBe(13006);
+    expect(c.cash).toBe(12606);
     expect(analyze(c).net).toBe(606);
     tick(c);
     expect(c.month).toBe(8);
     expect(c.won).toBe(true);
-    expect(c.cash).toBe(13612);
+    expect(c.cash).toBe(13212);
   });
   it('requires every exact final threshold', () => {
     const c = charterCity();
@@ -236,15 +241,15 @@ describe('charter and treasury', () => {
     const c = charterCity();
     settle(c, 6, tick);
     expect(c.stable).toBe(2);
-    demolish(c, 4, 5);
+    removeUtility(c, 4, 5, 'wire');
     tick(c);
     expect(c.stable).toBe(0);
     expect(c.won).toBe(false);
     const cash = c.cash;
-    build(c, 4, 5, 'road');
+    layUtility(c, 4, 5, 'wire');
     tick(c);
     expect(c.stable).toBe(1);
-    expect(c.cash - cash).toBe(576);
+    expect(c.cash - cash).toBe(598);
   });
   it('runs into debt under ordinary overbuilding, recovers by grant and demolition', () => {
     const c = createCity();
@@ -264,6 +269,7 @@ describe('charter and treasury', () => {
     build(c, 3, 4, 'power');
     build(c, 2, 6, 'residential');
     build(c, 3, 6, 'commercial');
+    connectUtilities(c);
     settle(c, 8, tick);
     expect(analyze(c).net).toBeGreaterThan(0);
     expect(c.cash).toBeGreaterThan(0);
@@ -333,6 +339,7 @@ it('shares the 40-person jobless startup allowance across every home', () => {
   build(c, 3, 4, 'power');
   for (let x = 4; x <= 12; x++) build(c, x, 4, 'residential');
   for (let x = 2; x <= 7; x++) build(c, x, 6, 'residential');
+  connectUtilities(c);
   tick(c);
   expect(analyze(c).population).toBe(40);
   expect(analyze(c).jobs).toBe(0);

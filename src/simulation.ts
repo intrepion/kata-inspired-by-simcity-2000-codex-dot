@@ -15,9 +15,11 @@ export interface Tile {
   terrain: Terrain;
   kind: Kind;
   amount: number;
+  wire: boolean;
+  pipe: boolean;
 }
 export interface City {
-  version: 1;
+  version: 2;
   tiles: Tile[];
   cash: number;
   month: number;
@@ -38,7 +40,7 @@ export const CATALOG: Record<
     cost: 30,
     upkeep: 2,
     max: 0,
-    hint: 'Connect districts and carry both utilities.',
+    hint: 'Transport access only. Add wires and pipes separately.',
     shortcut: '1',
   },
   residential: {
@@ -70,7 +72,7 @@ export const CATALOG: Record<
     cost: 900,
     upkeep: 60,
     max: 0,
-    hint: '600 power capacity via adjacent roads.',
+    hint: '600 power capacity via connected power lines.',
     shortcut: '5',
   },
   water: {
@@ -133,10 +135,10 @@ export function terrainAt(x: number, y: number): Terrain {
 }
 export function createCity(): City {
   return {
-    version: 1,
+    version: 2,
     tiles: Array.from({ length: SIZE * SIZE }, (_, i) => {
       const [x, y] = coords(i);
-      return { terrain: terrainAt(x, y), kind: 'empty', amount: 0 };
+      return { terrain: terrainAt(x, y), kind: 'empty', amount: 0, wire: false, pipe: false };
     }),
     cash: 14000,
     month: 0,
@@ -189,10 +191,53 @@ export function demolish(city: City, x: number, y: number): boolean {
   t.amount = 0;
   return true;
 }
+export type Utility = 'wire' | 'pipe';
+export const UTILITY_INFO = {
+  wire: {
+    name: 'Power line',
+    cost: 8,
+    hint: 'Lay a connected line from a turbine to districts. Crosses roads and zones.',
+    shortcut: 'w',
+  },
+  pipe: {
+    name: 'Water pipe',
+    cost: 12,
+    hint: 'Lay underground pipes from a river pump to districts. Crosses roads and zones.',
+    shortcut: 'p',
+  },
+};
+export function layUtility(
+  city: City,
+  x: number,
+  y: number,
+  utility: Utility,
+): { ok: boolean; message: string } {
+  if (!validCoordinate(x, y) || !Object.hasOwn(UTILITY_INFO, utility))
+    return { ok: false, message: 'Choose a valid tile and utility.' };
+  const tile = city.tiles[id(x, y)],
+    info = UTILITY_INFO[utility];
+  if (tile.terrain !== 'land')
+    return { ok: false, message: 'Utilities must stay on buildable land.' };
+  if (tile[utility]) return { ok: false, message: `${info.name} already here.` };
+  if (city.cash < info.cost)
+    return { ok: false, message: `Need $${info.cost} for ${info.name.toLowerCase()}.` };
+  tile[utility] = true;
+  city.cash -= info.cost;
+  return { ok: true, message: `${info.name} laid for $${info.cost}.` };
+}
+export function removeUtility(city: City, x: number, y: number, utility: Utility): boolean {
+  if (!validCoordinate(x, y) || !Object.hasOwn(UTILITY_INFO, utility)) return false;
+  const tile = city.tiles[id(x, y)];
+  if (!tile[utility]) return false;
+  tile[utility] = false;
+  return true;
+}
 export interface Network {
   roads: number[];
-  power: number;
-  water: number;
+}
+export interface UtilityNetwork {
+  tiles: number[];
+  capacity: number;
   used: number;
 }
 export interface District {
@@ -210,6 +255,12 @@ export interface District {
 export interface Report {
   networks: Network[];
   roadNetwork: number[];
+  powerNetwork: number[];
+  waterNetwork: number[];
+  powerNetworks: UtilityNetwork[];
+  waterNetworks: UtilityNetwork[];
+  powerReserved: number;
+  waterReserved: number;
   districts: Record<number, District>;
   population: number;
   jobs: number;
@@ -245,7 +296,7 @@ export function analyze(city: City): Report {
             roadNetwork[n] = index;
             roads.push(n);
           }
-      networks.push({ roads, power: 0, water: 0, used: 0 });
+      networks.push({ roads });
     }
   const adjacent = (i: number) =>
     [
@@ -255,12 +306,47 @@ export function analyze(city: City): Report {
           .filter((n) => n >= 0),
       ),
     ].sort((a, b) => a - b);
-  city.tiles.forEach((t, i) => {
-    if (t.kind === 'power' || t.kind === 'water') {
-      const n = adjacent(i)[0];
-      if (n !== undefined) networks[n][t.kind] += 600;
-    }
-  });
+  const utilityGraph = (utility: Utility, source: 'power' | 'water') => {
+    const membership = Array<number>(SIZE * SIZE).fill(-1),
+      groups: UtilityNetwork[] = [];
+    city.tiles.forEach((t, i) => {
+      if (!t[utility] || membership[i] >= 0) return;
+      const index = groups.length,
+        cells = [i];
+      membership[i] = index;
+      for (let h = 0; h < cells.length; h++)
+        for (const n of neighbors(cells[h]))
+          if (city.tiles[n][utility] && membership[n] < 0) {
+            membership[n] = index;
+            cells.push(n);
+          }
+      groups.push({ tiles: cells, capacity: 0, used: 0 });
+    });
+    const options = (i: number) =>
+      [...new Set([i, ...neighbors(i)].map((n) => membership[n]).filter((n) => n >= 0))].sort(
+        (a, b) => a - b,
+      );
+    city.tiles.forEach((t, i) => {
+      if (t.kind === source) {
+        const n = options(i)[0];
+        if (n !== undefined) groups[n].capacity += 600;
+      }
+    });
+    return { membership, groups, options };
+  };
+  const electricity = utilityGraph('wire', 'power'),
+    waterworks = utilityGraph('pipe', 'water');
+  const reserve = (graph: typeof electricity, i: number, units: number) => {
+    const options = graph.options(i),
+      selected =
+        options.find((n) => graph.groups[n].capacity - graph.groups[n].used >= units) ??
+        options[0] ??
+        -1;
+    const n = graph.groups[selected],
+      supplied = !!n && n.capacity - n.used >= units;
+    if (n) n.used += units;
+    return supplied;
+  };
   let population = 0,
     jobs = 0,
     upkeep = 0;
@@ -302,18 +388,9 @@ export function analyze(city: City): Report {
     zones++;
     const options = adjacent(i),
       units = CATALOG[t.kind].max;
-    const selected =
-      options.find(
-        (n) =>
-          networks[n].power - networks[n].used >= units &&
-          networks[n].water - networks[n].used >= units,
-      ) ??
-      options[0] ??
-      -1;
-    const n = networks[selected];
-    const power = !!n && n.power - n.used >= units,
-      water = !!n && n.water - n.used >= units;
-    if (n) n.used += units;
+    const selected = options[0] ?? -1;
+    const power = reserve(electricity, i, units),
+      water = reserve(waterworks, i, units);
     const service = (k: Kind) =>
       city.tiles.some(
         (s, j) =>
@@ -337,9 +414,9 @@ export function analyze(city: City): Report {
       selected < 0
         ? 'Connect a road beside this district.'
         : !power
-          ? 'Power capacity missing on this road network.'
+          ? 'Connect power lines to a turbine with spare capacity.'
           : !water
-            ? 'Water capacity missing on this road network.'
+            ? 'Connect underground pipes to a river pump with spare capacity.'
             : t.kind === 'residential' && city.tax > 12
               ? 'Taxes above 12% are driving residents away.'
               : t.kind === 'residential' && pollution[i] >= 45
@@ -357,7 +434,7 @@ export function analyze(city: City): Report {
       road: selected >= 0,
       power,
       water,
-      served: power && water,
+      served: selected >= 0 && power && water,
       network: selected,
       pollution: pollution[i],
       health,
@@ -380,6 +457,12 @@ export function analyze(city: City): Report {
   return {
     networks,
     roadNetwork,
+    powerNetwork: electricity.membership,
+    waterNetwork: waterworks.membership,
+    powerNetworks: electricity.groups,
+    waterNetworks: waterworks.groups,
+    powerReserved: electricity.groups.reduce((a, n) => a + n.used, 0),
+    waterReserved: waterworks.groups.reduce((a, n) => a + n.used, 0),
     districts,
     population,
     jobs,
@@ -401,9 +484,12 @@ export function analyze(city: City): Report {
       commercial: clamp(Math.round(60 + (workforce - jobs) * 0.8), 0, 100),
       industrial: clamp(Math.round(50 + (workforce - jobs) * 0.6), 0, 100),
     },
-    power: networks.reduce((a, n) => a + n.power, 0),
-    water: networks.reduce((a, n) => a + n.water, 0),
-    reserved: networks.reduce((a, n) => a + n.used, 0),
+    power: electricity.groups.reduce((a, n) => a + n.capacity, 0),
+    water: waterworks.groups.reduce((a, n) => a + n.capacity, 0),
+    reserved: Math.max(
+      electricity.groups.reduce((a, n) => a + n.used, 0),
+      waterworks.groups.reduce((a, n) => a + n.used, 0),
+    ),
     pollution,
   };
 }

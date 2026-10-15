@@ -1,4 +1,4 @@
-import { createCity, place, type City, type Kind } from '../src/simulation';
+import { createCity, place, type City, type Kind, layUtility, coords } from '../src/simulation';
 export function build(c: City, x: number, y: number, k: Exclude<Kind, 'empty'>) {
   const result = place(c, x, y, k);
   if (!result.ok) throw new Error(`${k} ${x},${y}: ${result.message}`);
@@ -29,7 +29,20 @@ export function charterCity() {
     [10, 7],
   ])
     build(c, x, y, 'commercial');
+  connectUtilities(c);
   return c;
+}
+export function connectUtilities(c: City) {
+  c.tiles.forEach((t, i) => {
+    if (t.kind === 'road') {
+      const [x, y] = coords(i);
+      for (const u of ['wire', 'pipe'] as const)
+        if (!t[u]) {
+          const r = layUtility(c, x, y, u);
+          if (!r.ok) throw new Error(r.message);
+        }
+    }
+  });
 }
 export function settle(c: City, months: number, tick: (c: City) => unknown) {
   for (let i = 0; i < months; i++) tick(c);

@@ -2,11 +2,11 @@
 
 **District**: A tile zoned for homes, shops, or workshops. _Avoid_: counter, instant building.
 
-**Road network**: A set of orthogonally connected road tiles. It can carry utilities from adjacent plants to adjacent districts. _Avoid_: traffic simulation.
+**Road network**: A set of orthogonally connected road tiles. It provides transport access and civic connectivity; utilities use separate overlay components. _Avoid_: traffic simulation.
 
-**Served district**: A district beside a road network with enough power and water capacity for its planned maximum occupancy. _Avoid_: nearby plant.
+**Served district**: A district with road access and enough independent power-line and pipe capacity for its planned maximum occupancy. _Avoid_: nearby plant.
 
-**Capacity**: The maximum residents and job spaces reserved on a road network. Empty zones reserve their full capacity. _Avoid_: current usage.
+**Capacity**: The maximum residents and job spaces reserved separately on each utility network. Empty zones reserve their full capacity. _Avoid_: current usage.
 
 **Jobs**: Available occupied workplace spaces; **workforce** is 60% of residents, rounded down; **employed** is the smaller of jobs and workforce. _Avoid_: population equals workers.
 
@@ -15,3 +15,5 @@
 **Charter**: The guided harbor-town scenario with three milestones and a final three-month stability requirement. _Avoid_: endless tutorial.
 
 **Month**: One deterministic settlement cycle. _Avoid_: animation frame.
+
+2026-10-15 focused correction: v2 tiles add independent wire/pipe overlays. Keep v1 storage keys; migrate existing v1 roads to both overlays without charge. See docs/UTILITY_FIDELITY.md and ADR 0003 for contract, research, acceptance and limits. Independent reviews, serialized checks/build and the focused native browser route are complete; see the local acceptance record for observed limits.

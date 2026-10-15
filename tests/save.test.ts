@@ -30,7 +30,7 @@ it('rejects malformed shapes, oversized saves and unsupported versions', () => {
   for (const raw of ['null', '[]', '{}', '"city"', ' '.repeat(100001)])
     expect(() => deserialize(raw)).toThrow();
   const c = createCity();
-  expect(() => deserialize(JSON.stringify({ ...c, version: 2 }))).toThrow();
+  expect(() => deserialize(JSON.stringify({ ...c, version: 3 }))).toThrow();
   expect(() => deserialize(JSON.stringify({ ...c, tiles: c.tiles.slice(1) }))).toThrow();
 });
 it('rejects bounds, invalid flags and incoherent milestones', () => {

@@ -9,7 +9,7 @@ describe('construction boundary', () => {
     expect(city.cash).toBe(13970);
   });
 });
-import { analyze, demolish, id } from '../src/simulation';
+import { analyze, demolish, id, layUtility, removeUtility } from '../src/simulation';
 function build(
   city: ReturnType<typeof createCity>,
   x: number,
@@ -23,16 +23,18 @@ function infrastructure() {
   for (let x = 2; x <= 10; x++) build(c, x, 5, 'road');
   build(c, 2, 4, 'water');
   build(c, 3, 4, 'power');
+  for (let x = 2; x <= 10; x++)
+    for (const u of ['wire', 'pipe'] as const) expect(layUtility(c, x, 5, u).ok).toBe(true);
   return c;
 }
-describe('road utility networks', () => {
-  it('disconnects and reconnects supply after a road is removed', () => {
+describe('independent utility networks', () => {
+  it('disconnects and reconnects supply after a water pipe is removed', () => {
     const c = infrastructure();
     build(c, 8, 4, 'residential');
     expect(analyze(c).districts[id(8, 4)].served).toBe(true);
-    demolish(c, 6, 5);
+    removeUtility(c, 6, 5, 'pipe');
     expect(analyze(c).districts[id(8, 4)].served).toBe(false);
-    build(c, 6, 5, 'road');
+    layUtility(c, 6, 5, 'pipe');
     expect(analyze(c).districts[id(8, 4)].served).toBe(true);
   });
 });

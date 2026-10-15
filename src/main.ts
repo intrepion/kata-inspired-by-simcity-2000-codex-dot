@@ -13,6 +13,9 @@ import {
   rescue,
   setTax,
   tick,
+  UTILITY_INFO,
+  layUtility,
+  removeUtility,
   type City,
   type Kind,
   type Report,
@@ -23,7 +26,7 @@ const $ = <T extends Element = HTMLElement>(selector: string) =>
   document.querySelector<T>(selector)!;
 const money = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toLocaleString('en-US')}`;
 let city: City = createCity(),
-  tool: Kind | 'inspect' | 'bulldoze' = 'inspect',
+  tool: Kind | 'inspect' | 'bulldoze' | 'wire' | 'pipe' | 'remove-wire' | 'remove-pipe' = 'inspect',
   overlay: Overlay = 'city',
   selected = id(5, 5),
   zoom = 1,
@@ -56,14 +59,19 @@ $('#app').innerHTML = `
     ([k, v]) =>
       `<button class="tool" data-tool="${k}" title="${v.hint} Shortcut ${v.shortcut}"><span class="tool-art">${icon(k as Kind)}</span><span><strong>${v.name}</strong><small>${money(v.cost)} <span>· ${money(v.upkeep)}/mo</span></small></span><kbd>${v.shortcut}</kbd></button>`,
   )
+  .join('')}${Object.entries(UTILITY_INFO)
+  .map(
+    ([k, v]) =>
+      `<button class="tool" data-tool="${k}" title="${v.hint}"><span class="glyph">${k === 'wire' ? 'ϟ' : '≈'}</span><span><strong>${v.name}</strong><small>${money(v.cost)} · no monthly upkeep</small></span><kbd>${v.shortcut.toUpperCase()}</kbd></button>`,
+  )
   .join(
     '',
-  )}</div><div class="utility-tools"><button class="tool active" data-tool="inspect"><span class="glyph">⌖</span><strong>Inspect</strong><kbd>I</kbd></button><button class="tool" data-tool="bulldoze"><span class="glyph">⌫</span><strong>Bulldoze</strong><kbd>B</kbd></button></div><p class="tool-hint" id="tool-hint">Look closer. Every district has a story.</p></aside>
+  )}<button class="tool" data-tool="remove-wire"><span class="glyph">−ϟ</span><strong>Remove wire</strong></button><button class="tool" data-tool="remove-pipe"><span class="glyph">−≈</span><strong>Remove pipe</strong></button></div><div class="utility-tools"><button class="tool active" data-tool="inspect"><span class="glyph">⌖</span><strong>Inspect</strong><kbd>I</kbd></button><button class="tool" data-tool="bulldoze"><span class="glyph">⌫</span><strong>Bulldoze</strong><kbd>B</kbd></button></div><p class="tool-hint" id="tool-hint">Look closer. Every district has a story.</p></aside>
 <section class="map-panel" aria-label="City planning map"><div class="map-toolbar"><div><span class="eyebrow">HARBOR BASIN</span><span class="map-tag">16 × 16 · river & ridge</span></div><div class="zoom"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button></div></div><div class="overlay-tabs" aria-label="Map overlays">${[
   ['city', 'City'],
   ['roads', 'Roads'],
   ['power', 'Power'],
-  ['water', 'Water'],
+  ['water', 'Underground water'],
   ['services', 'Civic'],
   ['pollution', 'Air'],
 ]
@@ -73,7 +81,7 @@ $('#app').innerHTML = `
   )
   .join(
     '',
-  )}</div><div class="map-scroll" id="map-scroll"><svg id="map" role="group" viewBox="0 0 1040 575" aria-label="Isometric harbor map. Arrow keys move; Enter applies the selected tool." xmlns="http://www.w3.org/2000/svg"></svg></div><div class="map-bottom"><span id="legend">Meadow · River · Ridge · Districts grow upward</span><span class="north">↗ N</span></div><div class="selection-control"><span>Go to tile</span><label>Column <input id="column" type="number" min="1" max="16" value="6"></label><label>Row <input id="row" type="number" min="1" max="16" value="6"></label><button id="locate">Locate</button><button id="apply">Apply tool</button><small>Arrows + Enter on map · drag roads / zones · Escape cancels</small></div><div id="notice" class="notice" role="status" aria-live="polite">Start with a road, a wind turbine and a river pump. Your city is paused.</div></section>
+  )}</div><div class="map-scroll" id="map-scroll"><svg id="map" role="group" viewBox="0 0 1040 575" aria-label="Isometric harbor map. Arrow keys move; Enter applies the selected tool." xmlns="http://www.w3.org/2000/svg"></svg></div><div class="map-bottom"><span id="legend">Meadow · River · Ridge · Districts grow upward</span><span class="north">↗ N</span></div><div class="selection-control"><span>Go to tile</span><label>Column <input id="column" type="number" min="1" max="16" value="6"></label><label>Row <input id="row" type="number" min="1" max="16" value="6"></label><button id="locate">Locate</button><button id="apply">Apply tool</button><small>Arrows + Enter on map · drag roads / zones / utilities · Escape cancels</small></div><div id="notice" class="notice" role="status" aria-live="polite">Roads give transport access. Connect a turbine with power lines and a river pump with underground pipes. Your city is paused.</div></section>
 <aside class="right-rail"><section class="charter panel"><div class="panel-title"><span>02</span><h2>The Harbor Charter</h2></div><p class="muted">A small town with a lasting future.</p><div id="milestones"></div><div class="charter-foot" id="charter-status">Three milestones. One good place.</div></section><section class="inspector panel"><div class="panel-title"><span>03</span><h2>Block notes</h2></div><div id="inspector"></div></section><section class="budget panel"><div class="panel-title"><span>04</span><h2>City ledger</h2></div><div id="ledger"></div><label class="tax-label" for="tax">Local tax <strong id="tax-value">9%</strong></label><input id="tax" type="range" min="5" max="15" step="1" value="${city.tax}" aria-label="Local tax percent"><div class="range-labels"><span>Growth · 5%</span><span>Pressure · 15%</span></div><button id="rescue" class="grant">Request $3,000 recovery grant</button></section></aside>
 </div>
 <footer><div><strong>Good cities begin with good connections.</strong><span>Original miniature city simulation · no external assets</span></div><nav aria-label="City files"><button id="save">Save</button><button id="load">Load saved</button><button id="export">Download save</button><button id="import">Import</button><button id="restart">New city</button></nav><span id="save-state">Autosave on</span></footer>
@@ -117,8 +125,27 @@ dialog.addEventListener('close', () => {
   lastFrame = performance.now();
   clock.elapsed = 0;
 });
+function chooseOverlay(next: Overlay) {
+  overlay = next;
+  document.querySelectorAll<HTMLElement>('[data-overlay]').forEach((e) => {
+    e.classList.toggle('active', e.dataset.overlay === overlay);
+    e.setAttribute('aria-pressed', String(e.dataset.overlay === overlay));
+  });
+}
+function toolName() {
+  if (tool === 'wire' || tool === 'pipe') return UTILITY_INFO[tool].name;
+  if (tool === 'remove-wire') return 'Remove wire';
+  if (tool === 'remove-pipe') return 'Remove pipe';
+  return tool === 'inspect'
+    ? 'Inspect'
+    : tool === 'bulldoze'
+      ? 'Bulldoze surface'
+      : CATALOG[tool as Exclude<Kind, 'empty'>].name;
+}
 function chooseTool(next: typeof tool) {
   tool = next;
+  if (tool === 'wire' || tool === 'remove-wire') chooseOverlay('power');
+  if (tool === 'pipe' || tool === 'remove-pipe') chooseOverlay('water');
   painting = false;
   lastPaint = -1;
   document.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) => {
@@ -129,8 +156,12 @@ function chooseTool(next: typeof tool) {
     tool === 'inspect'
       ? 'Look closer. Every district has a story.'
       : tool === 'bulldoze'
-        ? 'Free removal. Each occupied tile asks for confirmation.'
-        : CATALOG[tool as Exclude<Kind, 'empty'>].hint;
+        ? 'Remove the surface building only; wires and pipes stay. Each occupied tile asks for confirmation.'
+        : tool === 'wire' || tool === 'pipe'
+          ? UTILITY_INFO[tool].hint
+          : tool === 'remove-wire' || tool === 'remove-pipe'
+            ? 'Remove this utility only. Surface buildings and the other utility stay.'
+            : CATALOG[tool as Exclude<Kind, 'empty'>].hint;
   render();
 }
 function selectTile(i: number, focus = false) {
@@ -146,6 +177,25 @@ function applyTile(i: number) {
   selected = i;
   if (tool === 'inspect') {
     selectTile(i);
+    return;
+  }
+  if (tool === 'wire' || tool === 'pipe') {
+    const result = layUtility(city, x, y, tool);
+    notify(result.message);
+    selectTile(i);
+    if (result.ok) persist();
+    return;
+  }
+  if (tool === 'remove-wire' || tool === 'remove-pipe') {
+    const u = tool === 'remove-wire' ? 'wire' : 'pipe';
+    const removed = removeUtility(city, x, y, u);
+    notify(
+      removed
+        ? `${UTILITY_INFO[u].name} removed. Other layers preserved.`
+        : `No ${UTILITY_INFO[u].name.toLowerCase()} here.`,
+    );
+    selectTile(i);
+    if (removed) persist();
     return;
   }
   if (tool === 'bulldoze') {
@@ -209,8 +259,8 @@ function render() {
   const legends: Record<Overlay, string> = {
     city: 'Meadow · River · Ridge · Districts grow upward',
     roads: 'RD = road access · × = isolated · numbers = network',
-    power: `✓ supplied · × missing · ${r.power} capacity / ${r.reserved} reserved`,
-    water: `✓ supplied · × missing · ${r.water} capacity / ${r.reserved} reserved`,
+    power: `✓ supplied · × missing · ${r.power} capacity / ${r.powerReserved} reserved · gold lines`,
+    water: `✓ supplied · × missing · ${r.water} capacity / ${r.waterReserved} reserved · blue pipes below surface`,
     services: 'H = health · F = fire · – = missing · both needed',
     pollution: 'Air pressure: green 0 · amber 1–44 · red 45+ stalls homes',
   };
@@ -256,7 +306,11 @@ function renderInspector(r: Report) {
           : 'Rocky ridge'
       : CATALOG[t.kind].name;
   $('#inspector').innerHTML =
-    `<div class="block-location">COLUMN ${x + 1} / ROW ${y + 1}</div><h3>${name}</h3>${d ? `<div class="block-count"><strong>${t.amount}</strong> / ${CATALOG[t.kind as 'residential'].max} ${t.kind === 'residential' ? 'residents' : 'jobs'}</div><p class="reason">${d.reason}</p><div class="checks"><span class="${d.road ? 'yes' : 'no'}">${d.road ? '✓' : '×'} Road</span><span class="${d.power ? 'yes' : 'no'}">${d.power ? '✓' : '×'} Power</span><span class="${d.water ? 'yes' : 'no'}">${d.water ? '✓' : '×'} Water</span><span class="${d.health ? 'yes' : 'no'}">${d.health ? '✓' : '–'} Health</span><span class="${d.safety ? 'yes' : 'no'}">${d.safety ? '✓' : '–'} Fire</span></div><p class="muted">Air pressure ${d.pollution}/100${t.kind === 'residential' ? ` · satisfaction ${d.satisfaction}%` : ''}. Reserves ${CATALOG[t.kind as 'residential'].max} units of each utility.</p>` : t.kind === 'road' ? `<p class="reason">Road network ${r.roadNetwork[selected] + 1}</p><p class="muted">${r.networks[r.roadNetwork[selected]]?.roads.length} road tiles. Power ${r.networks[r.roadNetwork[selected]]?.power}, water ${r.networks[r.roadNetwork[selected]]?.water}, reserved ${r.networks[r.roadNetwork[selected]]?.used}. Plants attach to one adjacent network.</p>` : t.kind === 'empty' ? `<p class="reason">${t.terrain === 'land' ? 'A little room for your next idea.' : t.terrain === 'river' ? 'Pumps belong on the shore, touching this water.' : 'The ridge is part of the landscape. Build around it.'}</p><p class="muted">Selected tool: ${tool === 'inspect' ? 'Inspect' : tool === 'bulldoze' ? 'Bulldoze' : CATALOG[tool as Exclude<Kind, 'empty'>].name}. Use Apply tool or click the map.</p>` : `<p class="reason">${CATALOG[t.kind].hint}</p><p class="muted">${money(CATALOG[t.kind].upkeep)} monthly upkeep.${['clinic', 'fire'].includes(t.kind) ? ' Shares coverage only with homes on an adjacent road network.' : ''}</p>`}`;
+    `<div class="block-location">COLUMN ${x + 1} / ROW ${y + 1}</div><h3>${name}</h3>${d ? `<div class="block-count"><strong>${t.amount}</strong> / ${CATALOG[t.kind as 'residential'].max} ${t.kind === 'residential' ? 'residents' : 'jobs'}</div><p class="reason">${d.reason}</p><div class="checks"><span class="${d.road ? 'yes' : 'no'}">${d.road ? '✓' : '×'} Road</span><span class="${d.power ? 'yes' : 'no'}">${d.power ? '✓' : '×'} Power</span><span class="${d.water ? 'yes' : 'no'}">${d.water ? '✓' : '×'} Water</span><span class="${d.health ? 'yes' : 'no'}">${d.health ? '✓' : '–'} Health</span><span class="${d.safety ? 'yes' : 'no'}">${d.safety ? '✓' : '–'} Fire</span></div><p class="muted">Air pressure ${d.pollution}/100${t.kind === 'residential' ? ` · satisfaction ${d.satisfaction}%` : ''}. Reserves ${CATALOG[t.kind as 'residential'].max} units of each utility.</p>` : t.kind === 'road' ? `<p class="reason">Road network ${r.roadNetwork[selected] + 1}</p><p class="muted">${r.networks[r.roadNetwork[selected]]?.roads.length} road tiles. Transport is independent of utilities.</p>` : t.kind === 'empty' ? `<p class="reason">${t.terrain === 'land' ? 'A little room for your next idea.' : t.terrain === 'river' ? 'Pumps belong on the shore, touching this water.' : 'The ridge is part of the landscape. Build around it.'}</p><p class="muted">Selected tool: ${toolName()}. Use Apply tool or click the map.</p>` : `<p class="reason">${CATALOG[t.kind].hint}</p><p class="muted">${money(CATALOG[t.kind].upkeep)} monthly upkeep.${['clinic', 'fire'].includes(t.kind) ? ' Shares coverage only with homes on an adjacent road network.' : ''}</p>`}`;
+  $('#inspector').insertAdjacentHTML(
+    'beforeend',
+    `<p class="muted">Surface: ${name}. Power line: ${t.wire ? 'present' : 'absent'} · underground pipe: ${t.pipe ? 'present' : 'absent'}. Surface bulldozing preserves utilities; use the separate removal tools to cut a line.</p>`,
+  );
 }
 function renderMilestones(r: Report) {
   const requirements = [
@@ -297,7 +351,7 @@ function renderMilestones(r: Report) {
 function help() {
   modal(
     'Build a harbor, one block at a time.',
-    `<p>Roads are the roots of your city. A district and its plants must touch the same connected road network. Each zone reserves its full future utility capacity.</p><ol class="guide"><li><strong>Connect the shore.</strong> Paint a road on row 6, columns 3 through 12. Add branches at column 6 and 10 from row 5 through 10.</li><li><strong>Turn the lights on.</strong> Put a river pump at column 3, row 5 and a turbine at column 4, row 5. Both touch row 6. Each serves 600 reserved units.</li><li><strong>Make room for people.</strong> Zone homes beside roads, keeping them away from industry. Start with six homes and six shops: shops provide clean jobs.</li><li><strong>Care for the neighborhood.</strong> Place a clinic and fire station near the homes. Both cover homes within four tiles on the same road network. Use Civic overlay and Block notes.</li><li><strong>Let it settle.</strong> Press Play, or Step month while paused. Keep tax at 9%. Add jobs when homes stall. Maintain $1,500 reserve and a monthly surplus for three months to finish the charter.</li></ol><details><summary>Planning rules & recovery</summary><p>Homes grow 10/month if jobs are available (first 40 people can arrive without jobs). Shops and workshops grow when jobs are below workforce +40. Workforce is 60% of people. Only employed workers pay workplace tax. Industry pollutes within 3 tiles; parks reduce it. Homes stall at air pressure 45+, and residents leave at tax above 12% or missing utilities.</p><p>Utilities follow roads, not separate pipes or wires. Plants attach to one adjacent network. Traffic is abstracted; there are no vehicle jams, disasters, loans or external trading. Tax pays for operations. Demolition is free. If cash falls below $500, one $3,000 recovery grant helps you restructure. If you exhaust it, removing every constructed tile gives an empty harbor $3,000 fresh-start relief next month. Recovery always remains possible.</p></details><p class="muted">Shortcuts: 1–9 build tools, I inspect, B bulldoze, Space pause/play. Arrow keys navigate the selected map tile, Enter applies. Escape cancels. On small screens scroll the map or use Go to tile. Saves stay on this browser; download one for safekeeping.</p>`,
+    `<p>Roads provide transport. Separate power lines and underground pipes connect sources to districts. Each zone reserves its full future capacity independently on each utility network.</p><ol class="guide"><li><strong>Connect the shore.</strong> Paint a road on row 6, columns 3 through 12. Add branches at column 6 and 10 from row 5 through 10.</li><li><strong>Turn the lights on.</strong> Put a river pump at column 3, row 5 and a turbine at column 4, row 5. Each serves 600 reserved units. Choose Power line (W), paint every road tile, then Water pipe (P) and repeat. Lines and pipes may share the same tile. New roads contain neither utility.</li><li><strong>Make room for people.</strong> Zone homes beside roads, keeping them away from industry. Start with six homes and six shops: shops provide clean jobs.</li><li><strong>Care for the neighborhood.</strong> Place a clinic and fire station near the homes. Both cover homes within four tiles on the same road network. Use Civic overlay and Block notes.</li><li><strong>Let it settle.</strong> Press Play, or Step month while paused. Keep tax at 9%. Add jobs when homes stall. Maintain $1,500 reserve and a monthly surplus for three months to finish the charter.</li></ol><details><summary>Planning rules & recovery</summary><p>Homes grow 10/month if jobs are available (first 40 people can arrive without jobs). Shops and workshops grow when jobs are below workforce +40. Workforce is 60% of people. Only employed workers pay workplace tax. Industry pollutes within 3 tiles; parks reduce it. Homes stall at air pressure 45+, and residents leave at tax above 12% or missing utilities.</p><p>Power lines and pipes form independent networks over roads, zones or empty land. Each source attaches to one touching utility component, so it cannot duplicate capacity across islands. Water pipe selection opens the underground view. Cutting one utility preserves the other; surface demolition preserves both overlays. Traffic is abstracted; there are no vehicle jams, disasters, loans or external trading. Tax pays for operations. Demolition is free. If cash falls below $500, one $3,000 recovery grant helps you restructure. If you exhaust it, removing every constructed tile gives an empty harbor $3,000 fresh-start relief next month. Recovery always remains possible.</p></details><p class="muted">Shortcuts: 1–9 build tools, W power line, P water pipe, I inspect, B bulldoze, Space pause/play. Arrow keys navigate the selected map tile, Enter applies. Escape cancels. On small screens scroll the map or use Go to tile. Saves stay on this browser; download one for safekeeping.</p>`,
     'Start planning',
     () => {},
     'Close guide',
@@ -310,11 +364,7 @@ document
 document.querySelectorAll<HTMLButtonElement>('[data-overlay]').forEach(
   (b) =>
     (b.onclick = () => {
-      overlay = b.dataset.overlay as Overlay;
-      document.querySelectorAll('[data-overlay]').forEach((e) => {
-        e.classList.toggle('active', (e as HTMLElement).dataset.overlay === overlay);
-        e.setAttribute('aria-pressed', String((e as HTMLElement).dataset.overlay === overlay));
-      });
+      chooseOverlay(b.dataset.overlay as Overlay);
       render();
     }),
 );
@@ -376,7 +426,7 @@ map.addEventListener('pointerdown', (e) => {
   const i = Number(tile.dataset.tile);
   painting =
     event.pointerType === 'mouse' &&
-    ['road', 'residential', 'commercial', 'industrial'].includes(tool);
+    ['road', 'residential', 'commercial', 'industrial', 'wire', 'pipe'].includes(tool);
   lastPaint = i;
   applyTile(i);
 });
@@ -439,6 +489,8 @@ document.addEventListener('keydown', (e) => {
     return;
   const found = Object.entries(CATALOG).find(([, v]) => v.shortcut === e.key);
   if (found) chooseTool(found[0] as typeof tool);
+  if (e.key.toLowerCase() === 'w') chooseTool('wire');
+  if (e.key.toLowerCase() === 'p') chooseTool('pipe');
   if (e.key.toLowerCase() === 'i') chooseTool('inspect');
   if (e.key.toLowerCase() === 'b') chooseTool('bulldoze');
   if (e.code === 'Space' && !(e.target as Element).closest('button,a,summary')) {

@@ -1,0 +1,14 @@
+{
+  "population": 240,
+  "jobs": 180,
+  "employed": 144,
+  "satisfaction": 96,
+  "coverage": 100,
+  "utilities": 100,
+  "income": 838,
+  "upkeep": 232,
+  "net": 606,
+  "power": 600,
+  "water": 600,
+  "reserved": 420
+}
