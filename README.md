@@ -28,3 +28,7 @@ Saves are browser-local: autosave after actions/months, manual Save/Load snapsho
 `npm test`, `npm run typecheck`, `npm run build`, `npm audit --audit-level=moderate`. CI repeats these on every push. Domain fixtures use public construction controls; browser gameplay is separately recorded in [QA](docs/QA.md), including victory and recovery evidence. [Specification](docs/SPEC.md), [glossary](GLOSSARY.md), [decisions](docs/adr), and [independent review](docs/REVIEW.md) capture design and verification.
 
 [Focused utility correction: research, save migration, checks and normal-input route](docs/UTILITY_FIDELITY.md). V1 roads migrate to both utility overlays while preserving finances and development; saves now use v2.
+
+## Play online
+
+[Play the hosted game](https://intrepion.github.io/kata-inspired-by-simcity-2000-codex-dot/)
