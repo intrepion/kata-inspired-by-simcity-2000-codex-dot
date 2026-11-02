@@ -28,7 +28,7 @@ jobs:
         env:
           CAPTURE_OUTPUT: capture-output
         run: |
-          export GAME_SOURCE_COMMIT="$(git rev-parse HEAD^)"
+          export GAME_SOURCE_COMMIT="216f7c5389f6f6c38e24105f169d47ba5e7580ce"
           python3 -m http.server 4272 --bind 127.0.0.1 --directory capture-site > /tmp/terrace-http.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
