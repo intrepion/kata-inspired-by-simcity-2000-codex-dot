@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "workflowCommit": "2eb612b27bde44c5a9abd4ade9bb9ddc0147a2fc",
+  "sourceCommit": "216f7c5389f6f6c38e24105f169d47ba5e7580ce",
+  "runId": "41433573218",
+  "url": "http://127.0.0.1:4272/",
+  "inputs": {
+    "index.html": "20101ff9a8b71071e75f70f9e96fd92800a880c67d977997ea70385e3b867881",
+    "assets/index-D-o6XgVq.js": "4650bfda4aa602ae15d3401f13ae84f725cd39ff7a09f4fc9c0675d1b4a8148d",
+    "assets/index-DEwAPX0C.css": "4a35c5d0d77ecf4b27e45add64f16c430d1ee94241d42abe0aeb6c6b0d54a404"
+  },
+  "browser": "153.0.8010.12",
+  "viewport": {
+    "width": 1280,
+    "height": 1000
+  },
+  "screenshots": ["terrace-01.png", "terrace-02.png"]
+}

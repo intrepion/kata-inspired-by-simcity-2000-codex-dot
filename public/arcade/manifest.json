@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "gameId": "kata-inspired-by-simcity-2000-codex-dot",
   "playUrl": "https://intrepion.github.io/kata-inspired-by-simcity-2000-codex-dot/",
   "screenshots": [
@@ -23,6 +23,46 @@
         "sourcePath": "docs/qa/fidelity-2026-10-15/underground-served.jpg",
         "deployedBuild": null,
         "captureDate": null
+      }
+    },
+    {
+      "path": "arcade/screenshots/ci-20261102-01.jpg",
+      "sha256": "23665249d5a1a662c30d91138c0547cce4ae18ec51919ec54131cfcfbf5dc7d8",
+      "alt": "Terrace & Tide gameplay, view 1",
+      "provenance": {
+        "kind": "ci_gameplay_capture",
+        "sourcePath": "arcade/capture-evidence/ci-20261102-01.png",
+        "sourceSha256": "8da03fbcf48d249e0cbba34df1475390b0ec344041fe172e5b87ab40304a9e92",
+        "captureCommit": "216f7c5389f6f6c38e24105f169d47ba5e7580ce",
+        "workflowRunId": "41433573218",
+        "inputHashes": {
+          "index.html": "20101ff9a8b71071e75f70f9e96fd92800a880c67d977997ea70385e3b867881",
+          "assets/index-D-o6XgVq.js": "4650bfda4aa602ae15d3401f13ae84f725cd39ff7a09f4fc9c0675d1b4a8148d",
+          "assets/index-DEwAPX0C.css": "4a35c5d0d77ecf4b27e45add64f16c430d1ee94241d42abe0aeb6c6b0d54a404"
+        },
+        "publishedFilesVerifiedAt": "2026-11-02T19:01:20Z",
+        "captureRecordPath": "arcade/capture-evidence/ci-20261102-record.json",
+        "captureRecordSha256": "030794ef9611d0cfe6982f6d487f6129d69dc0bd14b22ab9588ba247d7228e36"
+      }
+    },
+    {
+      "path": "arcade/screenshots/ci-20261102-02.jpg",
+      "sha256": "4c9dfb9a019f134e7d342dd01e285de219b479765d0f0d90db8dc51a8530f724",
+      "alt": "Terrace & Tide gameplay, view 2",
+      "provenance": {
+        "kind": "ci_gameplay_capture",
+        "sourcePath": "arcade/capture-evidence/ci-20261102-02.png",
+        "sourceSha256": "340e6f45733bc7aa688515501d211624594e9e1ae39cbf022cfb9ffa83a35bb1",
+        "captureCommit": "216f7c5389f6f6c38e24105f169d47ba5e7580ce",
+        "workflowRunId": "41433573218",
+        "inputHashes": {
+          "index.html": "20101ff9a8b71071e75f70f9e96fd92800a880c67d977997ea70385e3b867881",
+          "assets/index-D-o6XgVq.js": "4650bfda4aa602ae15d3401f13ae84f725cd39ff7a09f4fc9c0675d1b4a8148d",
+          "assets/index-DEwAPX0C.css": "4a35c5d0d77ecf4b27e45add64f16c430d1ee94241d42abe0aeb6c6b0d54a404"
+        },
+        "publishedFilesVerifiedAt": "2026-11-02T19:01:20Z",
+        "captureRecordPath": "arcade/capture-evidence/ci-20261102-record.json",
+        "captureRecordSha256": "030794ef9611d0cfe6982f6d487f6129d69dc0bd14b22ab9588ba247d7228e36"
       }
     }
   ]
