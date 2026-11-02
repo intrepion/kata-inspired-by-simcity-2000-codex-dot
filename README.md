@@ -32,3 +32,7 @@ Saves are browser-local: autosave after actions/months, manual Save/Load snapsho
 ## Play online
 
 [Play the hosted game](https://intrepion.github.io/kata-inspired-by-simcity-2000-codex-dot/)
+
+## Arcade metadata
+
+See [docs/arcade-metadata.md](docs/arcade-metadata.md) for the game-owned manifest and screenshot provenance.
